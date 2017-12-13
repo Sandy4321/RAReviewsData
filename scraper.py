@@ -5,9 +5,14 @@ import requests
 import re
 import csv
 
+############
+# CONTROLS #
+############
+#(UPDATE ME BEFORE RUNNING)
+#pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
 latest_review_id = 21855
 num_pulls = 25
-#pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
+verbose = True
 
 link_base = "https://www.residentadvisor.net/reviews/"
 
@@ -143,18 +148,19 @@ with open('RA.csv', 'wb') as csvfile:
 
 
 		print(i)
-		print("release_type= " + release_type)
-		print("artist= " + artist)
-		print("release_title= " + release_title)
-		print("label= " + label)
-		print("release_month= " + release_month)
-		print("style= " + style)
-		print("num_comments= " + num_comments)
-		print("rating= " + rating)
-		print("review_published= " + review_published)
-		print("author= " + author)
-		print("review_body= " + review_body)
-		print("tracklist= " + tracklist)
+		if verbose:
+			print("release_type= " + release_type)
+			print("artist= " + artist)
+			print("release_title= " + release_title)
+			print("label= " + label)
+			print("release_month= " + release_month)
+			print("style= " + style)
+			print("num_comments= " + num_comments)
+			print("rating= " + rating)
+			print("review_published= " + review_published)
+			print("author= " + author)
+			print("review_body= " + review_body)
+			print("tracklist= " + tracklist)
 		
 
 

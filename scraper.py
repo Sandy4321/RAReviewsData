@@ -8,26 +8,31 @@ import csv
 ############
 # CONTROLS #
 ############
-#(UPDATE ME BEFORE RUNNING)
-#pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
 latest_review_id = 21855
-num_pulls = 25
-verbose = True
+#set as either number of pulls to try or "full" 
+#pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
+num_pulls = 400
+verbose = False
+###########
+
+if (num_pulls == "full"):
+	num_pulls = latest_review_id - 1
+
 
 link_base = "https://www.residentadvisor.net/reviews/"
 
 with open('RA.csv', 'wb') as csvfile:
-	csvwriter = csv.writer(csvfile, delimiter='|')
+	csvwriter = csv.writer(csvfile, delimiter=';')
 	csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","style","num_comments","rating","review_published","author","review_body","tracklist"])
+	# csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","style","num_comments","rating","review_published","author","tracklist"])
 
 
 	for i in range(latest_review_id,latest_review_id - num_pulls,-1):
 		
+
 		url = link_base + str(i)
 
-		#Single
-		# r = requests.get("https://www.residentadvisor.net/reviews/21855")
-		#album
+		# r = requests.get("https://www.residentadvisor.net/reviews/21787")
 		r = requests.get(url)
 		data = r.text
 		soup = BeautifulSoup(data,'lxml')
@@ -120,7 +125,7 @@ with open('RA.csv', 'wb') as csvfile:
 
 		#chop out review body
 		try:
-			review_body = str(body_span[3])[58:-8]
+			review_body = str(body_span[3]).replace("\r","")[58:-8]
 		except:
 			review_body = "NaN"
 
@@ -142,10 +147,11 @@ with open('RA.csv', 'wb') as csvfile:
 		except:
 			tracklist = "NaN"
 
+		csvwriter.writerow([i,release_type,artist,release_title,label,release_month,style,num_comments,rating,review_published,author,review_body,tracklist])
+			# csvwriter.writerow([i,release_type,artist,release_title,label,release_month,style,num_comments,rating,review_published,author,tracklist])
 
-		with open('RA.csv', 'wb') as csvfile:
-			csvwriter.writerow([i,release_type,artist,release_title,label,release_month,style,num_comments,rating,review_published,author,review_body,tracklist])
 
+		# print(soup.prettify())
 
 		print(i)
 		if verbose:

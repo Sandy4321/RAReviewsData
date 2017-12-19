@@ -8,11 +8,12 @@ import csv
 ############
 # CONTROLS #
 ############
-latest_review_id = 21855
+#get this from residentadvisor.com
+latest_review_id = 21875
 #set as either number of pulls to try or "full" 
 #pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
-num_pulls = 400
-verbose = False
+num_pulls = 10
+verbose = True
 ###########
 
 if (num_pulls == "full"):
@@ -23,7 +24,7 @@ link_base = "https://www.residentadvisor.net/reviews/"
 
 with open('RA.csv', 'wb') as csvfile:
 	csvwriter = csv.writer(csvfile, delimiter=';')
-	csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","style","num_comments","rating","review_published","author","review_body","tracklist"])
+	csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","release_year","style","num_comments","rating","review_published","author","review_body","tracklist"])
 	# csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","style","num_comments","rating","review_published","author","tracklist"])
 
 
@@ -32,7 +33,7 @@ with open('RA.csv', 'wb') as csvfile:
 
 		url = link_base + str(i)
 
-		# r = requests.get("https://www.residentadvisor.net/reviews/21787")
+		# r = requests.get("https://www.residentadvisor.net/reviews/21851")
 		r = requests.get(url)
 		data = r.text
 		soup = BeautifulSoup(data,'lxml')
@@ -79,41 +80,64 @@ with open('RA.csv', 'wb') as csvfile:
 			#if no data here, it's wack - go on to next entry
 			continue
 
-		# 0 = label
-		# 1 = release month/year
-		# 2 = style
-		# 3 = comments
-		# 4 = rating
+		#
+		# A smarter way to deal with release data, as some may be missing
+		#
 
-		#handle label
-		try:
-			label = re.findall(">.*<",str(release_data[0].contents[3]))[0][1:-1]
-		except:
-			label = "NaN"
+		#initiallize all values to NaN in case they don't get filled
+		label = "NaN"
+		release_month = "NaN"
+		num_comments = "NaN"
+		rating = "NaN"
+		style = "NaN"
 
-		#handle release month
-		try:
-			release_month = release_data[1].contents[-1][1:-1]
-		except:
-			release_month = "NaN"
+		#get number of attributes in release_data chunk
+		release_data_length = len(release_data)
 
-		#handle style
-		try:
-			style = release_data[2].contents[-1][1:-1]
-		except:
-			style = "NaN"
+		#loop through each, check the attribute, handle accordingly and assign
+		for j in range(0,release_data_length):
+			
+			field = str(release_data[j].contents[1])[6:-9]
 
-		#handle comments
-		try:
-			num_comments = release_data[3].contents[2][1:-3]
-		except:
-			num_comments = "0"
+			if field == "Label":
+				#handle label
+				try:
+					label = re.findall(">.*<",str(release_data[j].contents[3]))[0][1:-1]
+				except:
+					label = "NaN"
+			elif field == "Released":
+				#handle release month
+				try:
+					release_month = release_data[j].contents[-1][1:-1]
+					release_year = release_month[-4:]
+					release_month = release_month[:-5]
+				except:	
+					release_month = "NaN"
+			elif field == "Comments":
+				#handle comments
+				try:
+					if release_data[j].contents[2] == '\n':
+						num_comments = "0"
+					else:
+						num_comments = release_data[j].contents[2][1:-3]
+				except:
+					num_comments = "0"
+			elif field == "Rating":
+				#handle rating
+				try:
+					rating = re.findall('g">.*<s',str(release_data[j].contents[3]))[0][3:-2]
+				except:
+					rating = "NaN"
+			elif field == "Style":
+				#handle style
+				try:
+					style = release_data[j].contents[-1][1:-1]
+				except:
+					style = "NaN"
+			else:
+				continue
 
-		#handle rating
-		try:
-			rating = re.findall('g">.*<s',str(release_data[4].contents[3]))[0][3:-2]
-		except:
-			rating = "NaN"
+
 
 		#
 		# gather chunk containing review body, tracklist, date published and author
@@ -147,10 +171,8 @@ with open('RA.csv', 'wb') as csvfile:
 		except:
 			tracklist = "NaN"
 
-		csvwriter.writerow([i,release_type,artist,release_title,label,release_month,style,num_comments,rating,review_published,author,review_body,tracklist])
-			# csvwriter.writerow([i,release_type,artist,release_title,label,release_month,style,num_comments,rating,review_published,author,tracklist])
-
-
+		csvwriter.writerow([i,release_type,artist,release_title,label,release_month,release_year,style,num_comments,rating,review_published,author,review_body,tracklist])
+		
 		# print(soup.prettify())
 
 		print(i)
@@ -160,6 +182,7 @@ with open('RA.csv', 'wb') as csvfile:
 			print("release_title= " + release_title)
 			print("label= " + label)
 			print("release_month= " + release_month)
+			print('release_year= ' + release_year)
 			print("style= " + style)
 			print("num_comments= " + num_comments)
 			print("rating= " + rating)

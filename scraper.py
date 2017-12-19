@@ -1,4 +1,4 @@
-#cd Documents/personal/programming\ projects/RAReviewsData/
+#coding=UTF8
 
 from bs4 import BeautifulSoup
 import requests
@@ -12,7 +12,7 @@ import csv
 latest_review_id = 21875
 #set as either number of pulls to try or "full" 
 #pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
-num_pulls = 10
+num_pulls = 1
 verbose = True
 ###########
 
@@ -33,8 +33,8 @@ with open('RA.csv', 'wb') as csvfile:
 
 		url = link_base + str(i)
 
-		# r = requests.get("https://www.residentadvisor.net/reviews/21851")
-		r = requests.get(url)
+		r = requests.get("https://www.residentadvisor.net/reviews/21858")
+		# r = requests.get(url)
 		data = r.text
 		soup = BeautifulSoup(data,'lxml')
 
@@ -59,7 +59,7 @@ with open('RA.csv', 'wb') as csvfile:
 			pass
 
 		try:
-			artist = artist_title[0]
+			artist = artist_title[0].replace("&amp;","&")
 		except:
 			artist = "NaN"
 
@@ -99,13 +99,13 @@ with open('RA.csv', 'wb') as csvfile:
 			
 			field = str(release_data[j].contents[1])[6:-9]
 
-			if field == "Label":
+			if field == "Label" or field == "レーベル":
 				#handle label
 				try:
 					label = re.findall(">.*<",str(release_data[j].contents[3]))[0][1:-1]
 				except:
 					label = "NaN"
-			elif field == "Released":
+			elif field == "Released" or field == "発売":
 				#handle release month
 				try:
 					release_month = release_data[j].contents[-1][1:-1]
@@ -113,7 +113,7 @@ with open('RA.csv', 'wb') as csvfile:
 					release_month = release_month[:-5]
 				except:	
 					release_month = "NaN"
-			elif field == "Comments":
+			elif field == "Comments" or field == "コメント":
 				#handle comments
 				try:
 					if release_data[j].contents[2] == '\n':
@@ -122,13 +122,13 @@ with open('RA.csv', 'wb') as csvfile:
 						num_comments = release_data[j].contents[2][1:-3]
 				except:
 					num_comments = "0"
-			elif field == "Rating":
+			elif field == "Rating" or field == "評価":
 				#handle rating
 				try:
 					rating = re.findall('g">.*<s',str(release_data[j].contents[3]))[0][3:-2]
 				except:
 					rating = "NaN"
-			elif field == "Style":
+			elif field == "Style" or field == "スタイル":
 				#handle style
 				try:
 					style = release_data[j].contents[-1][1:-1]
@@ -149,7 +149,7 @@ with open('RA.csv', 'wb') as csvfile:
 
 		#chop out review body
 		try:
-			review_body = str(body_span[3]).replace("\r","")[58:-8]
+			review_body = str(body_span[3]).replace("\r","")[58:-8].replace("&amp;","&")
 		except:
 			review_body = "NaN"
 

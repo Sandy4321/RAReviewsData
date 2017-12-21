@@ -4,15 +4,16 @@ from bs4 import BeautifulSoup
 import requests
 import re
 import csv
+import sys
 
 ############
 # CONTROLS #
 ############
 #get this from residentadvisor.com
-latest_review_id = 21875
+latest_review_id = 21915
 #set as either number of pulls to try or "full" 
 #pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
-num_pulls = 1
+num_pulls = 10
 verbose = True
 ###########
 
@@ -22,7 +23,7 @@ if (num_pulls == "full"):
 
 link_base = "https://www.residentadvisor.net/reviews/"
 
-with open('RA.csv', 'wb') as csvfile:
+with open('RA2.csv', 'wb') as csvfile:
 	csvwriter = csv.writer(csvfile, delimiter=';')
 	csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","release_year","style","num_comments","rating","review_published","author","review_body","tracklist"])
 	# csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","style","num_comments","rating","review_published","author","tracklist"])
@@ -33,8 +34,8 @@ with open('RA.csv', 'wb') as csvfile:
 
 		url = link_base + str(i)
 
-		r = requests.get("https://www.residentadvisor.net/reviews/21858")
-		# r = requests.get(url)
+		# r = requests.get("https://www.residentadvisor.net/reviews/8125")
+		r = requests.get(url)
 		data = r.text
 		soup = BeautifulSoup(data,'lxml')
 
@@ -53,10 +54,14 @@ with open('RA.csv', 'wb') as csvfile:
 
 		#split artist from title. store both.
 		try:
-			artist_title = artist_title.split("-")
+			#handle strange unicode character that sometimes shows up
+			if "-" in artist_title:
+				artist_title = artist_title.split("- ")
+			else:
+				artist_title = artist_title.split("\xe2\x80\x93 ")
 		except:
 			#if no data here, it's wack - go on to next entry
-			pass
+			continue
 
 		try:
 			artist = artist_title[0].replace("&amp;","&")
@@ -102,7 +107,7 @@ with open('RA.csv', 'wb') as csvfile:
 			if field == "Label" or field == "レーベル":
 				#handle label
 				try:
-					label = re.findall(">.*<",str(release_data[j].contents[3]))[0][1:-1]
+					label = re.findall(">.*<",str(release_data[j].contents[3]))[0][1:-1].encode("utf-8")
 				except:
 					label = "NaN"
 			elif field == "Released" or field == "発売":
@@ -131,7 +136,7 @@ with open('RA.csv', 'wb') as csvfile:
 			elif field == "Style" or field == "スタイル":
 				#handle style
 				try:
-					style = release_data[j].contents[-1][1:-1]
+					style = release_data[j].contents[-1][1:-1].encode("utf-8")
 				except:
 					style = "NaN"
 			else:
@@ -159,20 +164,32 @@ with open('RA.csv', 'wb') as csvfile:
 		except:
 			review_published = "NaN"
 
+		#handle a case where a reviewer with a profile will create extra entry in review_body
+		#this affects where to look for author and tracklist		
+		review_profile_flag = 0
+		if "profile" in str(body_span[7]):
+			review_profile_flag = 1
+
 		#chop out author
 		try:
-			author = re.findall('reviewer">.*<',str(body_span[7]))[0][10:-8]
+			if review_profile_flag:
+				author = re.findall('reviewer">.*<',str(body_span[7]))[0][10:-8].encode("utf-8")
+			else:
+				author = str(body_span[7])[7:-8]
 		except:
 			author = "NaN"
 
 		#chop out tracklist
 		try:
-			tracklist = str(body_span[13]).replace("\r<br/>",',')[6:-7]
+			if review_profile_flag:
+				tracklist = str(body_span[13]).replace("\r<br/>",',')[6:-7]
+			else:
+				tracklist = str(body_span[12]).replace("\r<br/>",',')[6:-7]
 		except:
 			tracklist = "NaN"
 
 		csvwriter.writerow([i,release_type,artist,release_title,label,release_month,release_year,style,num_comments,rating,review_published,author,review_body,tracklist])
-		
+
 		# print(soup.prettify())
 
 		print(i)
@@ -191,5 +208,6 @@ with open('RA.csv', 'wb') as csvfile:
 			print("review_body= " + review_body)
 			print("tracklist= " + tracklist)
 		
+
 
 

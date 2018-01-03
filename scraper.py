@@ -6,15 +6,18 @@ import re
 import csv
 import sys
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
 ############
 # CONTROLS #
 ############
 #get this from residentadvisor.com
-latest_review_id = 21915
+latest_review_id = 21921
 #set as either number of pulls to try or "full" 
 #pulls 25 in about 32 seconds -- full run will take almost 8 hours(!)
-num_pulls = 10
-verbose = True
+num_pulls = "full"
+verbose = False
 ###########
 
 if (num_pulls == "full"):
@@ -23,18 +26,19 @@ if (num_pulls == "full"):
 
 link_base = "https://www.residentadvisor.net/reviews/"
 
-with open('RA2.csv', 'wb') as csvfile:
+with open('RA.csv', 'wb') as csvfile:
 	csvwriter = csv.writer(csvfile, delimiter=';')
 	csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","release_year","style","num_comments","rating","review_published","author","review_body","tracklist"])
 	# csvwriter.writerow(["ra_review_id","release_type","artist","release_title","label","release_month","style","num_comments","rating","review_published","author","tracklist"])
 
 
-	for i in range(latest_review_id,latest_review_id - num_pulls,-1):
-		
+	# for i in range(latest_review_id,latest_review_id - num_pulls,-1):
+	for i in repull_author_list:
 
 		url = link_base + str(i)
 
-		# r = requests.get("https://www.residentadvisor.net/reviews/8125")
+		# uncomment below to test single row
+		# r = requests.get("https://www.residentadvisor.net/reviews/6323")
 		r = requests.get(url)
 		data = r.text
 		soup = BeautifulSoup(data,'lxml')
@@ -56,7 +60,7 @@ with open('RA2.csv', 'wb') as csvfile:
 		try:
 			#handle strange unicode character that sometimes shows up
 			if "-" in artist_title:
-				artist_title = artist_title.split("- ")
+				artist_title = artist_title.split("-")
 			else:
 				artist_title = artist_title.split("\xe2\x80\x93 ")
 		except:
@@ -64,7 +68,7 @@ with open('RA2.csv', 'wb') as csvfile:
 			continue
 
 		try:
-			artist = artist_title[0].replace("&amp;","&")
+			artist = artist_title[0].replace("&amp;","&").rstrip()
 		except:
 			artist = "NaN"
 
@@ -107,7 +111,7 @@ with open('RA2.csv', 'wb') as csvfile:
 			if field == "Label" or field == "レーベル":
 				#handle label
 				try:
-					label = re.findall(">.*<",str(release_data[j].contents[3]))[0][1:-1].encode("utf-8")
+					label = re.findall(">.*<",str(release_data[j].contents[3]))[0][1:-1].encode("utf-8").replace("&amp;","&")
 				except:
 					label = "NaN"
 			elif field == "Released" or field == "発売":
